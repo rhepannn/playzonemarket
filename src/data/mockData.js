@@ -1,0 +1,81 @@
+export const GAMES = [
+  { id: 'ml', name: 'Mobile Legends', icon: '🎮', color: 'indigo' },
+  { id: 'pubg', name: 'PUBG Mobile', icon: '🔫', color: 'emerald' },
+  { id: 'ff', name: 'Free Fire', icon: '🔥', color: 'orange' },
+  { id: 'vlr', name: 'Valorant', icon: '🎯', color: 'rose' },
+  { id: 'gi', name: 'Genshin Impact', icon: '✨', color: 'sky' },
+];
+
+export const RANKS = {
+  ml: ['Epic', 'Legend', 'Mythic', 'Mythic Honor', 'Mythic Glory', 'Mythic Immortal'],
+  pubg: ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Crown', 'Ace', 'Conqueror'],
+  ff: ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Heroic', 'Grandmaster'],
+  vlr: ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Ascendant', 'Immortal', 'Radiant'],
+  gi: ['AR 1-20', 'AR 21-40', 'AR 41-55', 'AR 56-60'],
+};
+
+export const MOCK_ACCOUNTS = [
+  {
+    id: '1',
+    gameId: 'ml',
+    title: 'Mythical Glory | 300+ Skins | KoF Skin Complete',
+    price: 2500000,
+    rank: 'Mythic Glory',
+    level: 120,
+    skins: 342,
+    heroCount: 110,
+    seller: 'ProGamer99',
+    rating: 4.8,
+    image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=800',
+    description: 'Akun pribadi, main dari season 2. Koleksi skin lengkap termasuk KoF, Limited, dan Collector. All unbind.',
+    isPopular: true,
+    isLatest: true,
+    isVerified: true
+  },
+  {
+    id: 'PUB-001',
+    gameId: 'pubg',
+    title: 'PUBG Ace Pharoah Full Set',
+    price: 1850000,
+    rank: 'Ace Master',
+    skins: 154,
+    level: 72,
+    seller: 'LootMaster',
+    rating: 4.8,
+    image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop',
+    description: 'Akun PUBG Sultan dengan set Pharoah level max. Semua skin senjata premium tersedia.',
+    isPopular: true,
+    isLatest: false,
+    isVerified: true
+  },
+  {
+    id: '3',
+    gameId: 'vlr',
+    title: 'Radiant Peak | Elderflame Vandal | Kuronami Bundle',
+    price: 1200000,
+    rank: 'Immortal 3',
+    level: 210,
+    skins: 45,
+    seller: 'ValorantKing',
+    rating: 4.7,
+    image: 'https://images.unsplash.com/photo-1624138784614-87fd1b6528f8?auto=format&fit=crop&q=80&w=800',
+    description: 'Rank tinggi, MMR bagus. Skin premium banyak. Siap main kompetitif.',
+    isPopular: false,
+    isLatest: true,
+  },
+  {
+    id: '4',
+    gameId: 'gi',
+    title: 'AR 60 | Raiden C2 + BiS | 25+ Star 5 Characters',
+    price: 1500000,
+    rank: 'AR 60',
+    level: 60,
+    skins: 5,
+    seller: 'GenshinMaster',
+    rating: 4.6,
+    image: 'https://images.unsplash.com/photo-1614680376593-902f74cf0d41?auto=format&fit=crop&q=80&w=800',
+    description: 'Akun end game, resource melimpah. Abyss 36 star gampang.',
+    isPopular: true,
+    isLatest: false,
+  }
+];
