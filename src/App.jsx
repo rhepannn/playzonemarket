@@ -57,57 +57,75 @@ const Navbar = () => {
   const unreadCount = chatRooms.length;
 
   return (
-    <nav className={`fixed top-0 w-full z-50 transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-slate-950/80 backdrop-blur-lg border-b border-slate-800' : 'bg-transparent'}`}>
-      <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-indigo-500/20">
-            <Store className="text-white w-6 h-6" />
+    <>
+      <nav className={`fixed top-0 w-full z-50 transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'} ${isScrolled ? 'bg-slate-950/80 backdrop-blur-lg border-b border-slate-800' : 'bg-transparent'}`}>
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2 group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-indigo-500/20">
+              <Store className="text-white w-6 h-6" />
+            </div>
+            <span className="text-2xl font-bold tracking-tight text-white">PLAY<span className="text-indigo-500">ZONE</span></span>
+          </Link>
+
+          {/* Desktop nav links */}
+          <div className="hidden md:flex items-center gap-8">
+            {navLinks.map(link => (
+              <Link key={link.path} to={link.path}
+                className={`flex items-center gap-2 text-sm font-medium transition-colors hover:text-indigo-400 ${location.pathname === link.path ? 'text-indigo-400' : 'text-slate-400'}`}>
+                <link.icon className="w-4 h-4" />
+                {link.name}
+              </Link>
+            ))}
           </div>
-          <span className="text-2xl font-bold tracking-tight text-white">PLAY<span className="text-indigo-500">ZONE</span></span>
-        </Link>
 
-        {/* Desktop nav links */}
-        <div className="hidden md:flex items-center gap-8">
-          {navLinks.map(link => (
-            <Link key={link.path} to={link.path}
-              className={`flex items-center gap-2 text-sm font-medium transition-colors hover:text-indigo-400 ${location.pathname === link.path ? 'text-indigo-400' : 'text-slate-400'}`}>
-              <link.icon className="w-4 h-4" />
-              {link.name}
-            </Link>
-          ))}
+          {/* Right actions */}
+          <div className="flex items-center gap-3">
+            {user && (
+              <Link to="/chat" className="relative p-2 rounded-xl hover:bg-slate-800 transition-colors">
+                <MessageSquare className="w-5 h-5 text-slate-400" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-600 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-slate-950">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
+            <div className="h-6 w-[1px] bg-slate-800 mx-1" />
+            {user ? (
+              <Link to="/dashboard" className="flex items-center gap-2.5 p-1.5 pr-4 rounded-xl hover:bg-slate-800 transition-all border border-transparent hover:border-slate-700 group">
+                <div className="w-8 h-8 rounded-lg overflow-hidden border border-indigo-500/20 flex-shrink-0 transform group-hover:rotate-6 transition-transform">
+                  <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.username}`} alt="" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest leading-none">Logged in</span>
+                  <span className="text-xs font-bold text-white leading-none">{user.full_name || user.username}</span>
+                </div>
+              </Link>
+            ) : (
+              <Link to="/auth" className="flex items-center gap-2 btn-primary !py-2 !px-5 text-sm">
+                <LogIn className="w-4 h-4" /> Login
+              </Link>
+            )}
+          </div>
         </div>
+      </nav>
 
-        {/* Right actions */}
-        <div className="flex items-center gap-3">
-          {user && (
-            <Link to="/chat" className="relative p-2 rounded-xl hover:bg-slate-800 transition-colors">
-              <MessageSquare className="w-5 h-5 text-slate-400" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-600 text-white text-[9px] font-black rounded-full flex items-center justify-center border-2 border-slate-950">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </Link>
-          )}
-          <div className="h-6 w-[1px] bg-slate-800 mx-1" />
-          {user ? (
-            <Link to="/dashboard" className="flex items-center gap-2.5 p-1.5 pr-4 rounded-xl hover:bg-slate-800 transition-all border border-transparent hover:border-slate-700 group">
-              <div className="w-8 h-8 rounded-lg overflow-hidden border border-indigo-500/20 flex-shrink-0 transform group-hover:rotate-6 transition-transform">
-                <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.username}`} alt="" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest leading-none">Logged in</span>
-                <span className="text-xs font-bold text-white leading-none">{user.full_name || user.username}</span>
-              </div>
-            </Link>
-          ) : (
-            <Link to="/auth" className="flex items-center gap-2 btn-primary !py-2 !px-5 text-sm">
-              <LogIn className="w-4 h-4" /> Login
-            </Link>
-          )}
+      {/* Mobile Bottom Navigation */}
+      <nav className={`md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-950/90 backdrop-blur-lg border-t border-slate-800 pb-safe transition-transform duration-300 ${isVisible ? 'translate-y-0' : 'translate-y-full'}`}>
+        <div className="flex items-center justify-around h-16 px-2">
+          {navLinks.map(link => {
+            const isActive = location.pathname === link.path;
+            return (
+              <Link key={link.path} to={link.path}
+                className={`flex flex-col items-center gap-1 p-2 transition-colors ${isActive ? 'text-indigo-400' : 'text-slate-500 hover:text-slate-400'}`}>
+                <link.icon className={`w-5 h-5 ${isActive ? 'fill-indigo-500/20' : ''}`} />
+                <span className="text-[10px] font-bold">{link.name}</span>
+              </Link>
+            );
+          })}
         </div>
-      </div>
-    </nav>
+      </nav>
+    </>
   );
 };
 
@@ -132,7 +150,7 @@ const App = () => {
           {loading && <SplashScreen key="splash" />}
         </AnimatePresence>
         <Navbar />
-        <main className="pt-20 px-4 md:px-6">
+        <main className="pt-20 pb-24 md:pb-8 px-4 md:px-6">
           <Suspense fallback={<Spinner />}>
             <AnimatePresence mode="wait">
               <Routes>
