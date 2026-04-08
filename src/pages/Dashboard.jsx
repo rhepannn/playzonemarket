@@ -44,8 +44,13 @@ const Dashboard = () => {
   const myListings = listings.filter(l => l.seller_id === user.id);
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/');
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Error during logout:', err);
+    } finally {
+      navigate('/');
+    }
   };
 
   const handleDelete = async (id) => {

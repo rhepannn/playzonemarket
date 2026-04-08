@@ -108,10 +108,23 @@ export const AppProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setChatRooms([]);
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Supabase logout error:', error);
+    } finally {
+      setUser(null);
+      setSession(null);
+      setChatRooms([]);
+      // Force clear local storage keys just in case supabase auth session is stuck
+      localStorage.removeItem('supabase.auth.token');
+      const keys = Object.keys(localStorage);
+      keys.forEach(k => {
+        if (k.startsWith('sb-') && k.endsWith('-auth-token')) {
+          localStorage.removeItem(k);
+        }
+      });
+    }
   };
 
   // LISTINGS / PRODUCTS
