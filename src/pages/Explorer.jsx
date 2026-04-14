@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, SlidersHorizontal, X, BadgeCheck, Gamepad2, Tag, Store } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, X, Store, Filter } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import ProductCard from '../components/ProductCard';
 
 const GAMES = [
   { id: 'all', name: 'Semua Game', icon: '🎮' },
@@ -16,100 +16,53 @@ const GAMES = [
   { id: 'other', name: 'Lainnya', icon: '🎮' },
 ];
 
-const ProductCard = ({ account }) => {
-  const seller = account.profiles;
-  return (
-    <Link to={`/detail/${account.id}`}>
-      <motion.div
-        whileHover={{ y: -4 }}
-        transition={{ duration: 0.2 }}
-        className="glass-card overflow-hidden group cursor-pointer h-full flex flex-col"
-      >
-        {/* Image */}
-        <div className="aspect-video bg-slate-800 relative overflow-hidden">
-          {account.image_url ? (
-            <img src={account.image_url} alt={account.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Gamepad2 className="w-12 h-12 text-slate-700" />
-            </div>
-          )}
-          <div className="absolute top-3 left-3 flex gap-2">
-            <span className="px-2.5 py-1 rounded-lg bg-slate-950/80 backdrop-blur text-indigo-400 text-[10px] font-black uppercase tracking-widest border border-indigo-500/20">
-              {account.game || account.category}
-            </span>
-          </div>
-          <div className="absolute top-3 right-3">
-            <span className="px-2 py-1 rounded-lg bg-emerald-500/20 backdrop-blur text-emerald-400 text-[10px] font-black flex items-center gap-1 border border-emerald-500/20">
-              <BadgeCheck className="w-3 h-3" /> Verified
-            </span>
-          </div>
-        </div>
-
-        {/* Info */}
-        <div className="p-5 flex-1 flex flex-col">
-          <h3 className="font-black text-white text-sm mb-1 line-clamp-2 group-hover:text-indigo-300 transition-colors">
-            {account.title}
-          </h3>
-          <div className="flex items-center gap-1.5 mb-3">
-            <Tag className="w-3 h-3 text-slate-600" />
-            <span className="text-xs text-slate-500 font-bold">
-              {account.rank} {account.rank_value ? `(${account.rank_value} ${account.game === 'mobile-legends' ? 'Stars' : ''})` : ''}
-            </span>
-          </div>
-          <p className="text-xs text-slate-600 line-clamp-2 flex-1 mb-4">{account.description}</p>
-          <div className="flex items-center justify-between mt-auto">
-            <div>
-              <p className="text-xs text-slate-600 font-bold">Harga</p>
-              <p className="text-lg font-black text-indigo-400">
-                Rp {Number(account.price).toLocaleString('id-ID')}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg overflow-hidden border border-slate-700 bg-slate-800">
-                <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${seller?.username}`} alt="" />
-              </div>
-              <div>
-                <p className="text-[10px] text-slate-600 font-bold">Seller</p>
-                <p className="text-xs text-slate-400 font-bold">{seller?.full_name || seller?.username || 'Unknown'}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="px-5 pb-5">
-          <div className="w-full py-2.5 rounded-xl bg-indigo-600/10 border border-indigo-500/20 text-indigo-400 text-xs font-black text-center group-hover:bg-indigo-600 group-hover:text-white transition-all">
-            Lihat Detail →
-          </div>
-        </div>
-      </motion.div>
-    </Link>
-  );
-};
-
 const Explorer = () => {
+  const { searchListings, listings, fetchListings } = useApp();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGame, setSelectedGame] = useState('all');
   const [sortBy, setSortBy] = useState('latest');
-  const { listings } = useApp();
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  
+  const [localListings, setLocalListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Debounce ref
+  const debounceRef = useRef(null);
 
-  const filtered = useMemo(() => {
-    return listings
-      .filter(acc => {
-        const q = searchQuery.toLowerCase();
-        const matchSearch = !q ||
-          acc.title?.toLowerCase().includes(q) ||
-          (acc.game || acc.category || '').toLowerCase().includes(q) ||
-          acc.rank?.toLowerCase().includes(q);
-        const matchGame = selectedGame === 'all' || (acc.game || acc.category) === selectedGame;
-        return matchSearch && matchGame;
-      })
-      .sort((a, b) => {
-        if (sortBy === 'price-low') return Number(a.price) - Number(b.price);
-        if (sortBy === 'price-high') return Number(b.price) - Number(a.price);
-        return new Date(b.created_at) - new Date(a.created_at);
+  // Fetch initial data or when search triggers
+  useEffect(() => {
+    const fetch = async () => {
+      setLoading(true);
+      const data = await searchListings({
+        query: searchQuery,
+        game: selectedGame,
+        sortBy,
+        minPrice,
+        maxPrice
       });
-  }, [listings, searchQuery, selectedGame, sortBy]);
+      setLocalListings(data || []);
+      setLoading(false);
+    };
+
+    // Debounce the fetch if searching by text
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetch();
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(debounceRef.current);
+  }, [searchQuery, selectedGame, sortBy, minPrice, maxPrice, searchListings]);
+
+  // Initial load fallback just in case context isn't ready
+  useEffect(() => {
+    if (listings.length > 0 && localListings.length === 0 && !searchQuery && selectedGame === 'all') {
+      setLocalListings(listings);
+      setLoading(false);
+    }
+  }, [listings]);
 
   return (
     <div className="max-w-7xl mx-auto pb-20">
@@ -119,38 +72,92 @@ const Explorer = () => {
           <Store className="w-3 h-3" /> Marketplace
         </span>
         <h1 className="text-4xl font-black text-white mb-2">Jelajahi Akun Game</h1>
-        <p className="text-slate-500">{listings.length} akun tersedia dari seller terverifikasi</p>
+        <p className="text-slate-500">Temukan ribuan akun game dari penjual terpercaya</p>
       </div>
 
-      {/* Search + filter bar */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari game, rank, atau judul..."
-            className="w-full bg-slate-800/60 border border-slate-700 rounded-2xl pl-11 pr-4 py-3.5 text-sm text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors"
-          />
-          {searchQuery && (
-            <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2">
-              <X className="w-4 h-4 text-slate-500 hover:text-white" />
+      {/* Search & Top Filters */}
+      <div className="flex flex-col gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari hero, title, atau rank..."
+              className="w-full bg-slate-800/60 border border-slate-700 rounded-2xl pl-11 pr-4 py-3.5 text-sm text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-700 rounded-full">
+                <X className="w-4 h-4 text-slate-400 hover:text-white" />
+              </button>
+            )}
+          </div>
+          
+          <div className="flex gap-3">
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex-shrink-0 flex items-center gap-2 px-5 py-3.5 rounded-2xl border text-sm font-bold transition-colors ${
+                showFilters || minPrice || maxPrice ? 'bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/20' : 'bg-slate-800/60 text-slate-300 border-slate-700 hover:border-slate-600'
+              }`}
+            >
+              <Filter className="w-4 h-4" /> Filter
             </button>
-          )}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="bg-slate-800/60 border border-slate-700 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
+            >
+              <option value="latest">Terbaru</option>
+              <option value="price-low">Harga Terendah</option>
+              <option value="price-high">Harga Tertinggi</option>
+            </select>
+          </div>
         </div>
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          className="bg-slate-800/60 border border-slate-700 rounded-2xl px-4 py-3.5 text-sm text-white outline-none focus:border-indigo-500 transition-colors"
-        >
-          <option value="latest">Terbaru</option>
-          <option value="price-low">Harga Terendah</option>
-          <option value="price-high">Harga Tertinggi</option>
-        </select>
+
+        {/* Collapsible Filter Panel */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="p-5 glass-card mb-2 flex flex-wrap gap-6 items-end">
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Harga Minimum</label>
+                  <input
+                    type="number"
+                    value={minPrice}
+                    onChange={(e) => setMinPrice(e.target.value)}
+                    placeholder="Rp 0"
+                    className="w-full sm:w-48 bg-slate-950/50 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 block">Harga Maksimum</label>
+                  <input
+                    type="number"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(e.target.value)}
+                    placeholder="Rp Tak Terhingga"
+                    className="w-full sm:w-48 bg-slate-950/50 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:border-indigo-500 outline-none"
+                  />
+                </div>
+                <button
+                  onClick={() => { setMinPrice(''); setMaxPrice(''); }}
+                  className="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors text-sm font-bold"
+                >
+                  Reset
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Game filter chips */}
-      <div className="flex gap-2 overflow-x-auto pb-4 mb-8">
+      {/* Game Filter Chips */}
+      <div className="flex gap-2 overflow-x-auto pb-4 mb-8 custom-scrollbar">
         {GAMES.map(g => (
           <button
             key={g.id}
@@ -158,7 +165,7 @@ const Explorer = () => {
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black whitespace-nowrap transition-all flex-shrink-0 ${
               selectedGame === g.id
                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                : 'bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-600'
+                : 'bg-slate-800/80 text-slate-400 border border-slate-700 hover:border-slate-600 hover:text-slate-200'
             }`}
           >
             <span>{g.icon}</span> {g.name}
@@ -167,30 +174,44 @@ const Explorer = () => {
       </div>
 
       {/* Results */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-24 flex flex-col items-center">
-          <div className="w-20 h-20 rounded-3xl bg-slate-800 border border-slate-700 flex items-center justify-center mb-6">
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="glass-card h-80 animate-pulse bg-slate-800/50 flex flex-col">
+              <div className="h-40 bg-slate-700/50 rounded-t-2xl" />
+              <div className="p-5 flex-1 flex flex-col gap-3">
+                <div className="h-4 w-3/4 bg-slate-700/50 rounded" />
+                <div className="h-3 w-1/2 bg-slate-700/50 rounded" />
+                <div className="mt-auto h-8 w-1/3 bg-slate-700/50 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : localListings.length === 0 ? (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-24 flex flex-col items-center">
+          <div className="w-20 h-20 rounded-3xl bg-slate-800/50 border border-slate-700 flex items-center justify-center mb-6">
             <Search className="w-10 h-10 text-slate-600" />
           </div>
-          <h3 className="text-xl font-black text-white mb-2">Tidak Ada Hasil</h3>
-          <p className="text-slate-500 mb-6">Coba kata kunci atau filter yang berbeda</p>
-          <button onClick={() => { setSearchQuery(''); setSelectedGame('all'); }}
-            className="text-indigo-400 font-bold hover:underline">
-            Reset Filter
+          <h3 className="text-xl font-black text-white mb-2">Tidak Ada Produk</h3>
+          <p className="text-slate-500 mb-6">Coba kata kunci kombo, game, atau range harga yang lebih luas.</p>
+          <button onClick={() => { setSearchQuery(''); setSelectedGame('all'); setMinPrice(''); setMaxPrice(''); }}
+            className="px-6 py-2.5 rounded-xl bg-indigo-600/10 text-indigo-400 font-bold hover:bg-indigo-600 hover:text-white transition-all">
+            Reset Semua Filter
           </button>
-        </div>
+        </motion.div>
       ) : (
         <>
-          <p className="text-sm text-slate-600 font-bold mb-5">{filtered.length} hasil ditemukan</p>
+          <p className="text-sm text-slate-500 font-bold mb-5">{localListings.length} akun ditemukan</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             <AnimatePresence>
-              {filtered.map((acc, i) => (
+              {localListings.map((acc, i) => (
                 <motion.div
                   key={acc.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ delay: i * 0.05, duration: 0.3 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.2, delay: Math.min(i * 0.05, 0.5) }}
+                  className="h-full"
                 >
                   <ProductCard account={acc} />
                 </motion.div>

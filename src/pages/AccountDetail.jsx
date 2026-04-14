@@ -42,6 +42,10 @@ const AccountDetail = () => {
 
   const seller = account.profiles;
   const isOwner = user?.id === account.seller_id;
+  
+  const isVerified = seller?.is_verified;
+  const rating = seller?.rating;
+  const reviewsCount = seller?.reviews_count || 0;
 
   return (
     <div className="max-w-5xl mx-auto pb-20">
@@ -54,7 +58,7 @@ const AccountDetail = () => {
         {/* Left: Image & info */}
         <div className="lg:col-span-3 flex flex-col gap-6">
           {/* Image */}
-          <div className="aspect-video rounded-3xl overflow-hidden border border-slate-800 bg-slate-900">
+          <div className="aspect-video rounded-3xl overflow-hidden border border-slate-800 bg-slate-900 relative">
             {account.image_url ? (
               <img src={account.image_url} alt={account.title} className="w-full h-full object-cover" />
             ) : (
@@ -62,22 +66,28 @@ const AccountDetail = () => {
                 <Gamepad2 className="w-20 h-20 text-slate-700" />
               </div>
             )}
+            
+            {/* Trust Badge Top Right */}
+            {isVerified && (
+              <div className="absolute top-4 right-4">
+                <span className="px-3 py-1.5 rounded-lg bg-emerald-500/90 backdrop-blur text-white shadow-lg text-xs font-black flex items-center gap-1.5 border border-emerald-400/50">
+                  <BadgeCheck className="w-4 h-4" /> Verified
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Title & badges */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="px-3 py-1 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-black uppercase tracking-widest">
+              <span className="px-3 py-1 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-black uppercase tracking-widest shadow-sm">
                 {account.game || account.category}
-              </span>
-              <span className="px-3 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black flex items-center gap-1">
-                <BadgeCheck className="w-3 h-3" /> Verified
               </span>
             </div>
             <h1 className="text-3xl font-black text-white mb-2">{account.title}</h1>
-            <div className="flex items-center gap-2 text-slate-400 text-sm">
+            <div className="flex items-center gap-2 text-slate-400 text-sm font-medium">
               <Tag className="w-4 h-4" />
-              <span className="font-bold">
+              <span>
                 {account.rank} {account.rank_value ? `(${account.rank_value} ${account.game === 'mobile-legends' ? 'Stars' : ''})` : ''}
               </span>
             </div>
@@ -107,33 +117,61 @@ const AccountDetail = () => {
         {/* Right: Price + actions */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           {/* Price card */}
-          <div className="glass-card p-6">
+          <div className="glass-card p-6 border-indigo-500/20">
             <p className="text-sm text-slate-500 font-bold uppercase tracking-widest mb-1">Harga</p>
             <p className="text-4xl font-black text-white mb-1">
               Rp <span className="text-indigo-400">{Number(account.price).toLocaleString('id-ID')}</span>
             </p>
-            <p className="text-xs text-slate-600 font-bold">Harga dapat dinegosiasi</p>
+            <p className="text-xs text-slate-600 font-bold">Harga dapat dinegosiasi melalui chat</p>
           </div>
 
           {/* Seller card */}
-          <div className="glass-card p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl overflow-hidden border border-indigo-500/20 bg-slate-800 flex-shrink-0">
-              <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${seller?.username}`} alt="" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Seller</p>
-              <p className="font-black text-white">{seller?.full_name || seller?.username || 'Unknown'}</p>
-              <div className="flex items-center gap-1 mt-0.5">
-                <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                <span className="text-xs text-slate-400 font-bold">Verified Seller</span>
+          <div className="glass-card p-5 flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl overflow-hidden border border-indigo-500/20 bg-slate-800 flex-shrink-0">
+                <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${seller?.username}`} alt="" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Seller</p>
+                <Link to={`/seller/${seller?.id}`} className="font-black text-white text-lg hover:text-indigo-400 transition-colors">
+                  {seller?.full_name || seller?.username || 'Unknown'}
+                </Link>
+                <div className="flex items-center gap-1 mt-0.5">
+                  {isVerified ? (
+                    <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                      <BadgeCheck className="w-3 h-3" /> Verified Seller
+                    </span>
+                  ) : (
+                    <span className="text-xs text-slate-500 font-bold flex items-center gap-1">
+                      Seller Baru
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
+            
+            {/* Rating Display */}
+            {rating !== undefined && rating !== null && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-950/50 border border-slate-800">
+                <div className="flex items-center gap-2">
+                  <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                  <span className="text-lg font-black text-white">{rating.toFixed(1)} <span className="text-sm text-slate-500 font-medium">/ 5.0</span></span>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-400 font-bold">{reviewsCount} Ulasan</p>
+                  <Link to={`/seller/${seller?.id}`} className="text-[10px] text-indigo-400 font-bold hover:underline">Lihat Review</Link>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Security info */}
-          <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/15 flex items-center gap-3">
-            <ShieldCheck className="w-5 h-5 text-indigo-400 flex-shrink-0" />
-            <p className="text-xs text-slate-400 font-medium">Transaksi dilindungi sistem escrow kami. Dana disimpan hingga proses selesai.</p>
+          <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/15 flex items-start gap-3">
+            <ShieldCheck className="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-black text-indigo-300 mb-0.5">Transaksi 100% Aman</p>
+              <p className="text-[11px] text-slate-400 font-medium leading-relaxed">Dana Anda dilindungi oleh sistem escrow kami dan hanya akan diteruskan ke penjual setelah Anda mengkonfirmasi akun diterima dan sesuai.</p>
+            </div>
           </div>
 
           {/* Action buttons */}
@@ -151,15 +189,15 @@ const AccountDetail = () => {
               className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-2xl shadow-indigo-600/30 transition-all disabled:opacity-50"
             >
               {loadingChat
-                ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Membuka Chat...</>
-                : <><MessageSquare className="w-4 h-4" /> Chat Seller Sekarang</>
+                ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Sedang Menghubungkan...</>
+                : <><MessageSquare className="w-4 h-4" /> Chat Seller & Nego</>
               }
             </motion.button>
           )}
 
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex items-center gap-2 mt-2 justify-center">
             <Zap className="w-4 h-4 text-amber-400" />
-            <p className="text-xs text-slate-500 font-bold">Rata-rata seller merespon dalam 15 menit</p>
+            <p className="text-xs text-slate-500 font-bold">Rata-rata merespon dalam 15 menit</p>
           </div>
         </div>
       </div>

@@ -17,11 +17,51 @@ export const AppProvider = ({ children }) => {
   const fetchListings = useCallback(async () => {
     const { data, error } = await supabase
       .from('listings')
-      .select('*, profiles!listings_seller_id_fkey(id, full_name, username)')
+      .select('*, profiles!listings_seller_id_fkey(id, full_name, username, is_verified, rating, reviews_count)')
       .eq('status', 'active')
       .order('created_at', { ascending: false });
     if (error) console.error('fetchListings error:', error);
     setListings(data || []);
+  }, []);
+
+  // Search listings server-side
+  const searchListings = useCallback(async (filters) => {
+    try {
+      let q = supabase
+        .from('listings')
+        .select('*, profiles!listings_seller_id_fkey(id, full_name, username, is_verified, rating, reviews_count)')
+        .eq('status', 'active');
+
+      if (filters.game && filters.game !== 'all') {
+        q = q.eq('game', filters.game);
+      }
+      if (filters.query) {
+        q = q.ilike('title', `%${filters.query}%`);
+      }
+      if (filters.minPrice) {
+        q = q.gte('price', Number(filters.minPrice));
+      }
+      if (filters.maxPrice) {
+        q = q.lte('price', Number(filters.maxPrice));
+      }
+
+      if (filters.sortBy === 'price-low') {
+        q = q.order('price', { ascending: true });
+      } else if (filters.sortBy === 'price-high') {
+        q = q.order('price', { ascending: false });
+      } else {
+        q = q.order('created_at', { ascending: false });
+      }
+
+      const { data, error } = await q;
+      if (error) throw error;
+      
+      setListings(data || []);
+      return data;
+    } catch (err) {
+      console.error('searchListings error:', err);
+      return [];
+    }
   }, []);
 
   // Fetch profile for logged-in user
@@ -218,7 +258,7 @@ export const AppProvider = ({ children }) => {
       user, session, loading: initialLoading,
       listings, chatRooms, cart, wishlist, notifications,
       login, logout, register,
-      fetchListings, fetchChatRooms,
+      fetchListings, searchListings, fetchChatRooms,
       addListing, updateListing, deleteListing,
       openOrCreateChatRoom,
       addToCart, removeFromCart, toggleWishlist,

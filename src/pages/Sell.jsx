@@ -38,6 +38,7 @@ const Sell = () => {
   const [imagePreview, setImagePreview] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const fileInputRef = useRef(null);
   const { addListing, updateListing, user, listings } = useApp();
   const navigate = useNavigate();
@@ -61,6 +62,11 @@ const Sell = () => {
       }
     }
   }, [editId, listings]);
+
+  // Clear error msg on step change
+  useEffect(() => {
+    setErrorMsg('');
+  }, [step]);
 
   // Guard: must be logged in and seller
   if (!user) {
@@ -88,15 +94,33 @@ const Sell = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { alert('Max 5MB'); return; }
+    if (file.size > 5 * 1024 * 1024) { 
+      setErrorMsg('Ukuran file maksimal 5MB'); 
+      return; 
+    }
+    setErrorMsg('');
     setImageFile(file);
     const reader = new FileReader();
     reader.onloadend = () => setImagePreview(reader.result);
     reader.readAsDataURL(file);
   };
 
+  const handleNextStep1 = () => {
+    if (!formData.game) { setErrorMsg('Silakan pilih Game terlebih dahulu'); return; }
+    if (!formData.title.trim() || formData.title.length < 5) { setErrorMsg('Judul minimal 5 karakter'); return; }
+    if (!formData.rank) { setErrorMsg('Silakan pilih Rank/Level akun'); return; }
+    setStep(2);
+  };
+
+  const handleNextStep2 = () => {
+    if (!formData.price || Number(formData.price) < 5000) { setErrorMsg('Harga minimal Rp 5.000'); return; }
+    if (!formData.description.trim() || formData.description.length < 20) { setErrorMsg('Deskripsi minimal 20 karakter agar pembeli jelas'); return; }
+    setStep(3);
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       let image_url = formData.image_url;
 
@@ -132,7 +156,7 @@ const Sell = () => {
       setSubmitted(true);
       setTimeout(() => navigate('/dashboard'), 2000);
     } catch (err) {
-      alert('Error: ' + err.message);
+      setErrorMsg('Terjadi kesalahan: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -191,11 +215,17 @@ const Sell = () => {
         {/* Step 1: Game selection */}
         {step === 1 && (
           <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            {errorMsg && (
+              <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" /> {errorMsg}
+              </div>
+            )}
+            
             <div className="glass-card p-8 mb-6">
               <h2 className="text-xl font-black text-white mb-6">Pilih Game</h2>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
                 {GAMES.map(g => (
-                  <button key={g.id} type="button" onClick={() => setFormData({ ...formData, game: g.id, rank: '' })}
+                  <button key={g.id} type="button" onClick={() => {setFormData({ ...formData, game: g.id, rank: '' }); setErrorMsg('');}}
                     className={`p-4 rounded-2xl border-2 text-center transition-all ${
                       formData.game === g.id
                         ? 'border-indigo-500 bg-indigo-500/10'
@@ -211,7 +241,7 @@ const Sell = () => {
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <div className="flex flex-col gap-4">
                     <div>
-                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Judul Listing</label>
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Judul Listing *</label>
                       <input
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -220,7 +250,7 @@ const Sell = () => {
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Rank / Level</label>
+                      <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Rank / Level *</label>
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {availableRanks.map(r => (
                           <button key={r} type="button" onClick={() => setFormData({ ...formData, rank: r })}
@@ -238,16 +268,15 @@ const Sell = () => {
                     {formData.game === 'mobile-legends' && ['Mythic Romawi', 'Mythic Honor', 'Mythic Glory', 'Mythic Immortal'].includes(formData.rank) && (
                       <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4">
                         <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block">
-                          High Rank
+                          High Rank (Jumlah Bintang)
                         </label>
                         <input
                           type="number"
                           value={formData.rank_value}
                           onChange={(e) => setFormData({ ...formData, rank_value: e.target.value })}
-                          placeholder="Contoh: 900"
+                          placeholder="Contoh: 90"
                           className="w-full bg-slate-800/40 border border-slate-700 rounded-2xl px-4 py-3.5 text-sm text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors"
                         />
-                        <p className="text-[10px] text-slate-500 mt-1 italic">*Masukkan angka bintang/points (Integer)</p>
                       </motion.div>
                     )}
                   </div>
@@ -255,7 +284,7 @@ const Sell = () => {
               )}
             </div>
             <button
-              onClick={() => { if (formData.game && formData.title && formData.rank) setStep(2); else alert('Lengkapi semua field!'); }}
+              onClick={handleNextStep1}
               className="btn-primary w-full py-4 flex items-center justify-center gap-2">
               Lanjut <ArrowRight className="w-4 h-4" />
             </button>
@@ -265,18 +294,24 @@ const Sell = () => {
         {/* Step 2: Price & description */}
         {step === 2 && (
           <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            {errorMsg && (
+              <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" /> {errorMsg}
+              </div>
+            )}
+            
             <div className="glass-card p-8 mb-6">
               <h2 className="text-xl font-black text-white mb-6">Harga & Deskripsi</h2>
               <div className="flex flex-col gap-5">
                 <div>
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Harga (Rp)</label>
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Harga (Rp) *</label>
                   <div className="relative">
                     <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                     <input
                       type="number"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                      placeholder="500000"
+                      placeholder="50000"
                       className="w-full bg-slate-800/40 border border-slate-700 rounded-2xl pl-11 pr-4 py-3.5 text-sm text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors"
                     />
                   </div>
@@ -287,21 +322,22 @@ const Sell = () => {
                   )}
                 </div>
                 <div>
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Deskripsi Akun</label>
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Deskripsi Akun *</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Ceritakan kelebihan akun: hero/skin yang dimiliki, equipment, prestasi, dll..."
+                    placeholder="Ceritakan secara detail kelebihan akun (min. 20 karakter)..."
                     rows={4}
                     className="w-full bg-slate-800/40 border border-slate-700 rounded-2xl px-4 py-3.5 text-sm text-white placeholder-slate-600 outline-none focus:border-indigo-500 transition-colors resize-none"
                   />
+                  <p className="text-right mt-1 text-[10px] text-slate-500">{formData.description.length} karakter</p>
                 </div>
                 <div>
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block">⚠️ Kekurangan / Minus Akun</label>
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Kekurangan / Minus Akun (Opsional)</label>
                   <textarea
                     value={formData.description_minus}
                     onChange={(e) => setFormData({ ...formData, description_minus: e.target.value })}
-                    placeholder="Jujur ceritakan kekurangan akun: hero yang kurang, rank yang pernah turun, dll..."
+                    placeholder="Contoh: Winrate agak merah, rank pernah tertinggal..."
                     rows={3}
                     className="w-full bg-slate-800/40 border border-red-500/20 rounded-2xl px-4 py-3.5 text-sm text-white placeholder-slate-600 outline-none focus:border-red-500/50 transition-colors resize-none"
                   />
@@ -309,11 +345,11 @@ const Sell = () => {
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setStep(1)} className="flex-1 py-4 rounded-2xl border border-slate-700 text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2">
+              <button onClick={() => setStep(1)} className="flex-1 py-4 rounded-2xl border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 transition-all flex items-center justify-center gap-2 font-bold">
                 <ArrowLeft className="w-4 h-4" /> Kembali
               </button>
               <button
-                onClick={() => { if (formData.price && formData.description) setStep(3); else alert('Lengkapi semua field!'); }}
+                onClick={handleNextStep2}
                 className="flex-1 btn-primary py-4 flex items-center justify-center gap-2">
                 Lanjut <ArrowRight className="w-4 h-4" />
               </button>
@@ -324,6 +360,12 @@ const Sell = () => {
         {/* Step 3: Image & review */}
         {step === 3 && (
           <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            {errorMsg && (
+              <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" /> {errorMsg}
+              </div>
+            )}
+            
             <div className="glass-card p-8 mb-6">
               <h2 className="text-xl font-black text-white mb-6">Foto & Konfirmasi</h2>
 
@@ -333,9 +375,9 @@ const Sell = () => {
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                 {imagePreview ? (
                   <div className="relative">
-                    <img src={imagePreview} alt="preview" className="w-full h-48 object-cover rounded-2xl" />
+                    <img src={imagePreview} alt="preview" className="w-full h-48 object-cover rounded-2xl border border-slate-700 hover:border-indigo-500 transition-colors cursor-pointer" onClick={() => fileInputRef.current?.click()} />
                     <button onClick={() => { setImageFile(null); setImagePreview(''); setFormData({ ...formData, image_url: '' }); }}
-                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-950/80 flex items-center justify-center">
+                      className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-950/80 flex items-center justify-center border border-slate-700 hover:bg-red-500/20 hover:border-red-500 hover:text-red-400 transition-all">
                       <X className="w-4 h-4 text-white" />
                     </button>
                   </div>
@@ -343,24 +385,24 @@ const Sell = () => {
                   <button onClick={() => fileInputRef.current?.click()}
                     className="w-full h-40 rounded-2xl border-2 border-dashed border-slate-700 hover:border-indigo-500 flex flex-col items-center justify-center gap-3 transition-colors text-slate-500 hover:text-indigo-400">
                     <Upload className="w-8 h-8" />
-                    <span className="text-sm font-bold">Upload Screenshot (opsional, max 5MB)</span>
+                    <span className="text-sm font-bold">Upload Screenshot (Max 5MB)</span>
                   </button>
                 )}
               </div>
 
               {/* Summary */}
-              <div className="p-5 rounded-2xl bg-slate-800/40 border border-slate-700/40">
-                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">Ringkasan</h3>
-                <div className="flex flex-col gap-2">
+              <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-700/60 shadow-inner">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Ringkasan Produk</h3>
+                <div className="flex flex-col gap-3">
                   {[
                     { label: 'Game', value: selectedGame?.name },
                     { label: 'Judul', value: formData.title },
                     { label: 'Rank', value: formData.rank },
-                    { label: 'Harga', value: `Rp ${Number(formData.price).toLocaleString()}` },
+                    { label: 'Harga', value: `Rp ${Number(formData.price).toLocaleString('id-ID')}` },
                   ].map(({ label, value }) => (
-                    <div key={label} className="flex justify-between text-sm">
+                    <div key={label} className="flex justify-between items-center text-sm border-b border-slate-800/50 pb-2 last:border-0 last:pb-0">
                       <span className="text-slate-500 font-bold">{label}</span>
-                      <span className="text-white font-black">{value}</span>
+                      <span className="text-white font-black truncate max-w-[60%] text-right">{value}</span>
                     </div>
                   ))}
                 </div>
@@ -368,14 +410,14 @@ const Sell = () => {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => setStep(2)} className="flex-1 py-4 rounded-2xl border border-slate-700 text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2">
+              <button onClick={() => setStep(2)} disabled={loading} className="flex-1 py-4 rounded-2xl border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 transition-all flex items-center justify-center gap-2 font-bold disabled:opacity-50">
                 <ArrowLeft className="w-4 h-4" /> Kembali
               </button>
               <button onClick={handleSubmit} disabled={loading}
                 className="flex-1 btn-primary py-4 flex items-center justify-center gap-2 disabled:opacity-50">
                 {loading
                   ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Uploading...</>
-                  : <>{editId ? 'Update Produk' : 'Pasang Iklan'} <CheckCircle2 className="w-4 h-4 ml-1" /></>
+                  : <>{editId ? 'Simpan Perubahan' : 'Pasang Iklan Sekarang'} <CheckCircle2 className="w-4 h-4 ml-1" /></>
                 }
               </button>
             </div>
